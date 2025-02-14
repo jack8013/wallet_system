@@ -112,4 +112,14 @@ class WalletController extends Controller
             'message' => "Wallet has been deleted."
         ]);
     }
+
+    function showTransactions($id)
+    {
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found.']);
+        }
+
+        $transactions = Transaction::where('wallet_id', $id)->paginate(10);
+        return response()->json($transactions);
+    }
 }
