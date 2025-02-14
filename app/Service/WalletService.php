@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Jobs\WalletJob;
 use App\Models\Transaction;
 use App\Models\Wallet;
-use Exception;
 use Illuminate\Http\Request;
 
 class WalletService
@@ -40,29 +39,46 @@ class WalletService
     function store(Request $request)
     {
         $data = Wallet::create([
-            'user_id' => rand(1, 1000),
+            'user_id' => rand(1, 1000), // since user is not required, a user id is randomly generated
             'balance' => 0,
         ]);
 
         return $data;
     }
 
-    function update(Request $request, $id)
+    function update($amount, $type, $id)
     {
         $data = $this->findWallet($id);
 
-        $data->balance += $request->amount;
+        if ($type == 'withdrawal') {
+            $data->balance -= $amount;
+        } else {
+            $data->balance += $amount;
+        }
+        
         $data->save();
 
         $deposit = Transaction::create([
             'wallet_id' => $id,
-            'amount' => $request->amount,
-            'type' => 'deposit',
+            'amount' => $amount,
+            'type' => $type,
         ]);
 
-        dispatch(new WalletJob($id, $request->amount));
+        if ($type == 'deposit') {
+            dispatch(new WalletJob($id, $amount));
+        }
 
-        $updatedData = $this->findWallet($id);
+        $timeout = 3;
+        $start = time();
+
+        while ((time() - $start) < $timeout) {
+            sleep(1);
+
+            $updatedData = $this->findWallet($id);
+            if ($updatedData->rebate_amount !== $data->rebate_amount) {
+                return $updatedData;
+            }
+        }
 
         return $updatedData;
     }
