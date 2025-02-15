@@ -36,17 +36,17 @@ class WalletController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|integer',
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'user_id' => 'required|integer',
+        // ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => $validator->messages(),
-            ]);
-        }
+        // if ($validator->fails()) {
+        //     return response()->json([
+        //         'error' => $validator->messages(),
+        //     ]);
+        // }
 
-        $wallet = $this->service->store($request->amount);
+        $wallet = $this->service->store($request);
         return response()
             ->json([
                 'data' => $wallet,
@@ -67,9 +67,9 @@ class WalletController extends Controller
 
         try {
             $wallet = $this->service->update($request->amount, 'deposit', $id);
-            return  response()->json([
-                'data' => $wallet,
-            ]);
+            return  response()->json(
+                $wallet
+            );
         } catch (Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -98,9 +98,9 @@ class WalletController extends Controller
         }
 
         $wallet = $this->service->update($amount, 'withdrawal', $id);
-        return  response()->json([
-            'data' => $wallet,
-        ]);
+        return  response()->json(
+            $wallet
+        );
     }
 
 

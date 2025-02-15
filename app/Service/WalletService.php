@@ -55,10 +55,10 @@ class WalletService
         } else {
             $data->balance += $amount;
         }
-        
+
         $data->save();
 
-        $deposit = Transaction::create([
+        $transaction = Transaction::create([
             'wallet_id' => $id,
             'amount' => $amount,
             'type' => $type,
@@ -68,7 +68,7 @@ class WalletService
             dispatch(new WalletJob($id, $amount));
         }
 
-        $timeout = 3;
+        $timeout = 3;  // to simulate polling after rebate is applied
         $start = time();
 
         while ((time() - $start) < $timeout) {
@@ -80,7 +80,12 @@ class WalletService
             }
         }
 
-        return $updatedData;
+        $record = [
+            'wallet' => $updatedData,
+            'transaction' => $transaction
+        ];
+
+        return $record;
     }
 
     function destroy($id)
