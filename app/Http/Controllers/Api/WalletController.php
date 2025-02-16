@@ -97,10 +97,16 @@ class WalletController extends Controller
             ], 400);
         }
 
-        $wallet = $this->service->update($amount, 'withdrawal', $id);
-        return  response()->json(
-            $wallet
-        );
+        try {
+            $wallet = $this->service->update($amount, 'withdrawal', $id);
+            return  response()->json(
+                $wallet
+            );
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
 
@@ -119,7 +125,18 @@ class WalletController extends Controller
             return response()->json(['error' => 'Wallet not found.']);
         }
 
-        $transactions = Transaction::where('wallet_id', $id)->paginate(10);
-        return response()->json($transactions);
+        try {
+            $wallet = Wallet::find($id);
+            $transactions = Transaction::where('wallet_id', $id)->paginate(5); //Transaction::where('wallet_id', $id)->paginate(10);
+            $record = [
+                'wallet' => $wallet,
+                'transaction' => $transactions
+            ];
+            return response()->json($record);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

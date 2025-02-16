@@ -6,6 +6,7 @@ use App\Jobs\WalletJob;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WalletService
 {
@@ -48,42 +49,45 @@ class WalletService
 
     function update($amount, $type, $id)
     {
-        $data = $this->findWallet($id);
+        $record = DB::transaction(function () use ($amount, $type, $id) {
+            $data = Wallet::where('id', $id)->lockForUpdate()->firstOrFail(); // Pessimistic Locking
 
-        if ($type == 'withdrawal') {
-            $data->balance -= $amount;
-        } else {
-            $data->balance += $amount;
-        }
+            if ($type == 'withdrawal') {
+                $data->balance -= $amount;
+            } else {
+                $data->balance += $amount;
+            }
 
-        $data->save();
+            $data->save();
 
-        $transaction = Transaction::create([
-            'wallet_id' => $id,
-            'amount' => $amount,
-            'type' => $type,
-        ]);
+            $transaction = Transaction::create([
+                'wallet_id' => $id,
+                'amount' => $amount,
+                'type' => $type,
+            ]);
 
-        if ($type == 'deposit') {
-            dispatch(new WalletJob($id, $amount));
-        }
+            if ($type == 'deposit') {
+                dispatch(new WalletJob($id, $amount));
+            }
 
-        $timeout = 3;  // to simulate polling after rebate is applied
+            return [
+                'wallet' => $data,
+                'transaction' => $transaction
+            ];
+        });
+
+        $timeout = 3; // To simulate polling after rebate is applied
         $start = time();
 
         while ((time() - $start) < $timeout) {
             sleep(1);
 
             $updatedData = $this->findWallet($id);
-            if ($updatedData->rebate_amount !== $data->rebate_amount) {
-                return $updatedData;
+            if ($updatedData->rebate_amount !== $record['wallet']->rebate_amount) {
+                $record['wallet'] = $updatedData;
+                break;
             }
         }
-
-        $record = [
-            'wallet' => $updatedData,
-            'transaction' => $transaction
-        ];
 
         return $record;
     }

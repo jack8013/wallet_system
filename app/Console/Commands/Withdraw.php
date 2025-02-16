@@ -43,7 +43,7 @@ class Withdraw extends Command
             ]),
         ]);
 
-        $format = collect($responses)->map(fn ($response) => $response->throw()->json());
+        $format = collect($responses)->map(fn($response) => $response->throw()->json());
 
         dd($format, Wallet::find($id)->balance);
     }

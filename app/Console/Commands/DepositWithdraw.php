@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 
-class Withdraw extends Command
+class DepositWithdraw extends Command
 {
     /**
      * The name and signature of the console command.
