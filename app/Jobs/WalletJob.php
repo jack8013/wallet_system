@@ -11,8 +11,8 @@ class WalletJob implements ShouldQueue
 {
     use Queueable;
 
-    protected $walletId;
-    protected $amount;
+    public $walletId;
+    public $amount;
 
     /**
      * Create a new job instance.
