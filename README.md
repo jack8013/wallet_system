@@ -1,66 +1,184 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Wallet System
+Simple wallet system app that simulates creation of a wallet, deposit and withdrawal of funds with asynchronous fund rebates.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Concurrency Handling Overview
+This implementation manages concurrency using **pessimistic locking** (`lockForUpdate()`) and **polling** to ensure that updates are correctly applied after asynchronous modifications by jobs.
 
-## About Laravel
+## 1. Pessimistic Locking with `lockForUpdate()`
+- The function starts by initiating a **database transaction** to ensure atomicity.
+- `lockForUpdate()` is applied on the **Wallet** model to acquire a **pessimistic lock**, preventing other operations from modifying the row until the transaction is complete.
+- This ensures that **only one process** can update the wallet at a time, avoiding race conditions.
+- After acquiring the lock, the function updates the **wallet balance** based on whether the operation is a **withdrawal** or **deposit**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 2. Transaction Creation and Job Dispatching
+- A **transaction record** is created in the **Transaction** model to log the update.
+- If the operation is a **deposit**, a job (`WalletJob`) is **dispatched** for asynchronous processing.
+  - This job may involve additional operations such as **applying rebates** or **updating external systems**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 3. Polling for Rebate Application
+- After the transaction, **polling** is used to check if the rebate has been applied asynchronously.
+- The loop runs for a **defined timeout** (e.g., **3 seconds**), repeatedly checking if the **rebate_amount** field in the wallet has changed.
+- If a rebate is detected, the **wallet data is updated**, and the loop exits early.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 4. Timeout Mechanism
+- The polling process is **time-limited** to prevent the system from waiting indefinitely.
+- Once the timeout is reached, the function **returns the latest available wallet and transaction data**.
 
-## Learning Laravel
+#
+# Wallet API Documentation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## **Relevant APIs**
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### **Create a New Wallet**
+**Endpoint:** `POST /wallets`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Description:**
+Creates a new wallet with a randomized user ID and a balance of 0.
 
-## Laravel Sponsors
+**Request Body:**
+_None_
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**Response:**
+```json
+{
+  "data": {
+    "id": 3,
+    "user_id": 691,
+    "balance": 0
+  }
+}
+```
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### **Get Wallet by ID**
+**Endpoint:** `GET /wallets/{id}`
 
-## Contributing
+**Description:**
+Retrieves details of a single wallet.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Parameters:**
+- `id` (integer, required) – The wallet's ID
 
-## Code of Conduct
+**Response:**
+```json
+{
+  "id": 1,
+  "user_id": 691,
+  "balance": 0
+}
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+### **Deposit Funds**
+**Endpoint:** `POST /wallets/{id}/deposit`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Description:**
+Adds funds to a wallet.
 
-## License
+**Parameters:**
+- `id` (integer, required) – The wallet's ID
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Request Body:**
+```json
+{
+  "amount": 50.00
+}
+```
+
+**Response:**
+```json
+{
+  "wallet": {
+    "id": 3,
+    "user_id": 691,
+    "balance": "50.50"
+  },
+  "transaction": {
+    "id": 33,
+    "wallet_id": "3",
+    "amount": 50,
+    "type": "deposit"
+  }
+}
+```
+
+---
+
+### **Withdraw Funds**
+**Endpoint:** `POST /wallets/{id}/withdraw`
+
+**Description:**
+Withdraws funds from a wallet.
+
+**Parameters:**
+- `id` (integer, required) – The wallet's ID
+
+**Request Body:**
+```json
+{
+  "amount": 50.00
+}
+```
+
+**Response:**
+```json
+{
+  "wallet": {
+    "id": 3,
+    "user_id": 691,
+    "balance": "151.60"
+  },
+  "transaction": {
+    "id": 35,
+    "wallet_id": "3",
+    "amount": 10,
+    "type": "withdrawal"
+  }
+}
+```
+
+---
+
+### **Get Wallet Transactions**
+**Endpoint:** `GET /wallets/{id}/transactions`
+
+**Description:**
+Retrieves all transactions for a wallet.
+
+**Response:**
+```json
+{
+  "wallet": {
+    "id": 4,
+    "user_id": 302,
+    "balance": "51.00"
+  },
+  "transaction": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 36,
+        "wallet_id": 4,
+        "type": "deposit",
+        "amount": "100.00"
+      },
+      {
+        "id": 37,
+        "wallet_id": 4,
+        "type": "rebate",
+        "amount": "1.00"
+      },
+      {
+        "id": 38,
+        "wallet_id": 4,
+        "type": "withdrawal",
+        "amount": "50.00"
+      }
+    ]
+  }
+}
+```
+
+
