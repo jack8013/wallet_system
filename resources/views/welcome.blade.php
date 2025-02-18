@@ -27,7 +27,10 @@
 
 <body>
     <h1>Wallet System</h1>
-    <a href="{{ route('store') }}"><button>Create Wallet</button></a>
+    <form action="{{ route('store') }}" method="POST">
+        @csrf
+        <button type="submit">Create Wallet</button>
+    </form>
 
     <table>
         <tr>
@@ -52,12 +55,12 @@
                     </a>
                 </td>
                 <td>
-                <form action="{{ route('delete', $wallet->id) }}" method="POST"
-                    onsubmit="return confirm('Are you sure?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit">Delete</button>
-                </form>
+                    <form action="{{ route('delete', $wallet->id) }}" method="POST"
+                        onsubmit="return confirm('Are you sure?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit">Delete</button>
+                    </form>
                 </td>
             </tr>
         @endforeach
