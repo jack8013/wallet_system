@@ -24,6 +24,9 @@ This implementation manages concurrency using **pessimistic locking** (`lockForU
 - The polling process is **time-limited** to prevent the system from waiting indefinitely.
 - Once the timeout is reached, the function **returns the latest available wallet and transaction data**.
 
+## How to use
+Set up your Laravel environment as usual, run `composer install` for installing dependencies.
+
 #
 # Wallet API Documentation
 
