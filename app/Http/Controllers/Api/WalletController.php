@@ -36,6 +36,10 @@ class WalletController extends Controller
 
     public function store(Request $request)
     {
+        //
+        // Typically we would have to validate the request data when creating a new wallet but since user is not the focus
+        // validator is not applied here
+        //
         // $validator = Validator::make($request->all(), [
         //     'user_id' => 'required|integer',
         // ]);
