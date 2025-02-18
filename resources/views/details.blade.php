@@ -34,7 +34,8 @@
         <form action="{{ $type == 'deposit' ? route('deposit', $wallet->id) : route('withdraw', $wallet->id) }}"
             method="post">
             @csrf
-            <input type="number" name="amount" required>
+            <input type="number" placeholder="0.00" name="amount" min="{{ $type == 'deposit' ? '1' : '0.01' }}"
+                step="0.01" required>
             <input type="submit" value="{{ $type == 'deposit' ? 'Deposit' : 'Withdraw' }}">
         </form>
 
