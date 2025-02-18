@@ -27,6 +27,11 @@ class WalletController extends Controller
 
     public function show($id)
     {
+
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $wallet = $this->service->show($id);
 
         return response()->json([
@@ -59,6 +64,11 @@ class WalletController extends Controller
 
     public function deposit(Request $request, $id)
     {
+
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'amount' => 'required|decimal:0,2|min:1'
         ]);
@@ -77,12 +87,17 @@ class WalletController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
-            ]);
+            ], 404);
         }
     }
 
     public function withdraw(Request $request, $id)
     {
+
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'amount' => 'required|decimal:0,2'
         ]);
@@ -109,13 +124,17 @@ class WalletController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
-            ]);
+            ], 404);
         }
     }
 
 
     public function destroy($id)
     {
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $this->service->destroy($id);
 
         return response()->json([

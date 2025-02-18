@@ -29,6 +29,11 @@ class WalletController extends Controller
 
     public function details(Request $reqeust, $id)
     {
+
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $wallet = Wallet::find($id);
 
         $type = $reqeust->type;
@@ -40,6 +45,10 @@ class WalletController extends Controller
 
     public function deposit(Request $request, $id)
     {
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'amount' => 'required|decimal:0,2|min:1'
         ]);
@@ -58,6 +67,9 @@ class WalletController extends Controller
 
     public function withdraw(Request $request, $id)
     {
+        if (!Wallet::find($id)) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
         $validator = Validator::make($request->all(), [
             'amount' => 'required|decimal:0,2'
         ]);

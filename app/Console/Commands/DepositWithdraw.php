@@ -7,6 +7,19 @@ use Illuminate\Console\Command;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 
+/**
+ * Class DepositWithdraw
+ * 
+ * This console command simulates concurrent deposit and withdrawal requests to a wallet by 
+ * sending multiple HTTP requests at the same time. It tests the behavior of the system when
+ * multiple transactions (both deposits and withdrawals) occur simultaneously on the same wallet.
+ * 
+ * The command will:
+ * - Accept a wallet ID as an argument.
+ * - Simulate two deposit and two withdrawal requests.
+ * - Collect the responses from these requests.
+ * - Output the formatted responses and the final wallet balance.
+ */
 class DepositWithdraw extends Command
 {
     /**
@@ -23,9 +36,6 @@ class DepositWithdraw extends Command
      */
     protected $description = 'Command description';
 
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
         $id = $this->argument('id');
@@ -46,7 +56,7 @@ class DepositWithdraw extends Command
             ]),
         ]);
 
-        $format = collect($responses)->map(fn ($response) => $response->throw()->json());
+        $format = collect($responses)->map(fn($response) => $response->throw()->json());
 
         dd($format, Wallet::find($id)->balance);
     }

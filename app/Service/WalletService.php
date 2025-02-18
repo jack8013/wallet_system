@@ -47,6 +47,14 @@ class WalletService
         return $data;
     }
 
+    /**
+     * Updates the wallet balance and creates a transaction record.
+     * 
+     * This function uses pessimistic locking to prevent race conditions when updating the wallet balance.
+     * It supports both 'withdrawal' and 'deposit' types, adjusting the balance accordingly.
+     * After updating the wallet, a new transaction is recorded. If the operation is a deposit, a background job is dispatched to handle further updates (e.g., applying rebates).
+     * The function then polls the wallet for the rebate amount and waits up to 3 seconds for the rebate to be applied before returning the updated wallet data.
+     */
     function update($amount, $type, $id)
     {
         $record = DB::transaction(function () use ($amount, $type, $id) {
@@ -76,14 +84,14 @@ class WalletService
             ];
         });
 
-        $timeout = 3; // To simulate polling after rebate is applied
+        $timeout = 10; // To simulate polling after rebate is applied
         $start = time();
 
         while ((time() - $start) < $timeout) {
-            sleep(1);
+            sleep(3);
 
-            $updatedData = $this->findWallet($id);
-            if ($updatedData->rebate_amount !== $record['wallet']->rebate_amount) {
+            $updatedData = Wallet::find($id)->fresh();
+            if ($updatedData->balance !== $record['wallet']->balance) {
                 $record['wallet'] = $updatedData;
                 break;
             }
